@@ -71,6 +71,83 @@ public function store(Request $request)
 
 If the controller needs to compute values, apply business rules, or make domain-level decisions, that logic belongs in an Action.
 
+## Request-scoped context
+
+Middleware often resolves request-scoped data that Actions need: the current tenant, active locale, resolved shop, or any parameter derived from the request that a route group shares. Actions must not access this data through global helpers, static facades, or service locators.
+
+The correct transport is `$request->attributes`, a Symfony `ParameterBag` designed for sharing data between middleware and controllers within a single request lifecycle.
+
+```php
+// Middleware — resolves and stores context
+public function handle(Request $request, Closure $next): Response
+{
+    $scope = (new ResolveShopScopeQuery($request))->execute();
+    $request->attributes->set(ShopScope::class, $scope);
+
+    return $next($request);
+}
+
+// Controller — reads attributes, passes explicitly to Action
+public function show(string $slug, Request $request): Response
+{
+    $scope = $request->attributes->get(ShopScope::class);
+
+    return (new ShowProductAction($slug, $scope))->execute();
+}
+
+// Action — receives scope as a plain constructor parameter
+public function __construct(
+    public readonly string    $slug,
+    public readonly ShopScope $scope,
+) {}
+```
+
+Using the class name as the key (`ShopScope::class`) prevents string-key collisions and makes the dependency explicit.
+
+**Not acceptable — misuse of the logging infrastructure:**
+
+```php
+// Middleware
+Context::addHidden(ShopScope::class, $scope);
+
+// Controller
+$scope = Context::getHidden(ShopScope::class);
+```
+
+`Context::hidden()` is Laravel's log-enrichment facility. "Hidden" means hidden from log output, not a private store for dependencies. Using it as a request-scoped container couples the application layer to a logging concern.
+
+**Not acceptable — global helpers:**
+
+```php
+$id     = currentShopId();   // hidden coupling, untestable
+$locale = activeLocale();    // bypasses the explicit data flow
+```
+
+### Naming
+
+Name these DTO classes to reflect their domain, not their transport mechanism. Avoid the suffix `Context` — it creates ambiguity with Laravel's `Context` facade.
+
+| Recommended | Avoid |
+| --- | --- |
+| `ShopScope` | `ShopContext` |
+| `TenantScope` | `TenantContext` |
+| `LocaleScope` | `LocaleContext` |
+
+### When middleware is not needed
+
+If only one or two routes need the resolved data, resolving directly in the controller is cleaner:
+
+```php
+public function show(string $slug, Request $request, ResolveShopScopeQuery $query): Response
+{
+    $scope = $query->execute($request);
+
+    return (new ShowProductAction($slug, $scope))->execute();
+}
+```
+
+Use middleware when the scope is required across many routes and resolving it once per request matters.
+
 ## Closures
 
 Closures inside routes are acceptable in two distinct roles and should not be mixed.
