@@ -49,6 +49,8 @@ The execute() method contains only business logic and is invoked directly, witho
 
 Services and Repositories are not part of this architecture. Their responsibilities are covered by Actions (orchestration, previously "services") and Queries/Commands.
 
+Infrastructure clients, framework primitives, SDKs, and adapters may still be used as implementation details inside operations. They do not form a separate application service or repository layer.
+
 Any architectural element that doesn't make the system simpler or easier to change is not worth adding.
 
 

@@ -9,6 +9,8 @@ Two scenarios where this applies:
 - Starting a new project without the toolkit (the natural default for many teams)
 - Adopting the architecture on an existing codebase before introducing new infrastructure
 
+The light version intentionally accepts a small downgrade in wiring purity. Calling `boot()` from the constructor is a transitional Laravel-friendly compromise, not the strictest form of Two-Phase Initialization. It keeps vanilla Laravel usage simple while preserving a mechanical migration path to the toolkit.
+
 ## How it differs from the full version
 
 | Aspect | Light version | Full version (with toolkit) |
@@ -24,29 +26,20 @@ The key design constraint: `boot()` has the same signature in both versions. The
 
 ## Commands
 
-A Command handles one write operation. The constructor receives business parameters only. `boot()` declares typed dependencies — the container resolves them via `app()->call()`.
+A Command handles one write operation. The constructor receives business parameters only. When a Command needs external dependencies, `boot()` declares typed dependencies and the container resolves them via `app()->call()`.
 
 ```php
 class CreatePostCommand
 {
-    private PostRepository $repo;
-
     public function __construct(
         public readonly int $authorId,
         public readonly string $title,
         public readonly string $body,
-    ) {
-        app()->call([$this, 'boot']);
-    }
-
-    public function boot(PostRepository $repo): void
-    {
-        $this->repo = $repo;
-    }
+    ) {}
 
     public function execute(): Post
     {
-        return $this->repo->create([
+        return Post::query()->create([
             'author_id' => $this->authorId,
             'title'     => $this->title,
             'body'      => $this->body,
@@ -55,7 +48,7 @@ class CreatePostCommand
 }
 ```
 
-`app()->call([$this, 'boot'])` instructs the Laravel container to resolve the typed parameters of `boot()` and call it — the same resolution the bus performs automatically in the full version.
+Commands that use Eloquent or the Query Builder directly do not need `boot()`. Use `boot()` only when the operation depends on an external client, adapter, or configuration object.
 
 ### Usage
 
@@ -100,7 +93,7 @@ Only introduce `boot()` when there is an external dependency to resolve.
 ```php
 class FindPostsByTagQuery
 {
-    private SearchService $search;
+    private SearchIndexClient $search;
 
     public function __construct(
         public readonly string $tag,
@@ -108,7 +101,7 @@ class FindPostsByTagQuery
         app()->call([$this, 'boot']);
     }
 
-    public function boot(SearchService $search): void
+    public function boot(SearchIndexClient $search): void
     {
         $this->search = $search;
     }
@@ -134,7 +127,7 @@ An Action encapsulates business logic and orchestration. It coordinates Commands
 ```php
 class RegisterUserAction
 {
-    private MailerService $mailer;
+    private WelcomeEmailSender $welcomeEmail;
 
     public function __construct(
         public readonly string $name,
@@ -144,9 +137,9 @@ class RegisterUserAction
         app()->call([$this, 'boot']);
     }
 
-    public function boot(MailerService $mailer): void
+    public function boot(WelcomeEmailSender $welcomeEmail): void
     {
-        $this->mailer = $mailer;
+        $this->welcomeEmail = $welcomeEmail;
     }
 
     public function execute(): User
@@ -157,7 +150,7 @@ class RegisterUserAction
             password: $this->password,
         ))->execute();
 
-        $this->mailer->sendWelcome($user);
+        $this->welcomeEmail->send($user);
 
         return $user;
     }
@@ -183,7 +176,7 @@ A realistic multi-step Action that reads, writes, and notifies:
 ```php
 class CreateAndPublishPostAction
 {
-    private NotificationService $notifications;
+    private NotificationClient $notifications;
 
     public function __construct(
         public readonly int $authorId,
@@ -193,7 +186,7 @@ class CreateAndPublishPostAction
         app()->call([$this, 'boot']);
     }
 
-    public function boot(NotificationService $notifications): void
+    public function boot(NotificationClient $notifications): void
     {
         $this->notifications = $notifications;
     }
@@ -269,21 +262,20 @@ composer require utilitarian/laravel-toolkit
 
 ### Step 2: Update Commands and Actions
 
-Remove `app()->call([$this, 'boot'])` from the constructor. That is the only change to the class itself.
+For operations that define `boot()`, remove `app()->call([$this, 'boot'])` from the constructor. That is the only change to the class itself.
 
 Before:
 
 ```php
 public function __construct(
-    public readonly string $title,
-    public readonly string $body,
+    public readonly string $email,
 ) {
     app()->call([$this, 'boot']); // remove this line
 }
 
-public function boot(PostRepository $repo): void
+public function boot(WelcomeEmailSender $welcomeEmail): void
 {
-    $this->repo = $repo; // no changes
+    $this->welcomeEmail = $welcomeEmail; // no changes
 }
 ```
 
@@ -291,13 +283,12 @@ After:
 
 ```php
 public function __construct(
-    public readonly string $title,
-    public readonly string $body,
+    public readonly string $email,
 ) {}
 
-public function boot(PostRepository $repo): void
+public function boot(WelcomeEmailSender $welcomeEmail): void
 {
-    $this->repo = $repo;
+    $this->welcomeEmail = $welcomeEmail;
 }
 ```
 
@@ -379,6 +370,6 @@ Every architectural rule documented elsewhere in this series applies unchanged t
 - Entry point rules (Laravel 01 — HTTP Layer and Entry Points)
 - The decision framework: when to use Command vs Query vs Action vs Eloquent directly
 - The two-phase initialization concept: constructor for business parameters, `boot()` for infrastructure, `execute()` for logic
-- The rule: no business logic in `boot()`, no infrastructure in `execute()`
+- The rule: no business logic in `boot()`, no dependency resolution in `execute()`
 
 The light version is not a different architecture. It is the same architecture with different plumbing.

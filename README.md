@@ -25,6 +25,11 @@ Read and write separation as a convention, not infrastructure. No separate read 
 **Business Operations as Units**
 Code is organized around what the application does (create order, publish post, generate report) rather than technical layers (controllers, services, repositories).
 
+Actions, Commands, and Queries are operation types, not traditional technical layers. They group executable business behavior while keeping the meaning inside each operation.
+
+**Strong Defaults**
+Rules are strong defaults. They should be followed unless a specific project context makes an exception more useful than compliance.
+
 **No Services or Repositories**
 Actions replace service orchestration. Queries replace repository reads. Commands replace repository writes. Fewer abstractions, clearer boundaries.
 

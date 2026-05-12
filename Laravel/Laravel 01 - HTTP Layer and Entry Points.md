@@ -114,7 +114,7 @@ Context::addHidden(ShopScope::class, $scope);
 $scope = Context::getHidden(ShopScope::class);
 ```
 
-`Context::hidden()` is Laravel's log-enrichment facility. "Hidden" means hidden from log output, not a private store for dependencies. Using it as a request-scoped container couples the application layer to a logging concern.
+Laravel Context is ambient process/request context and logging-aware metadata, not an explicit dependency channel for application operations. Using it as a request-scoped container hides data flow that should remain visible at the HTTP boundary.
 
 **Not acceptable — global helpers:**
 

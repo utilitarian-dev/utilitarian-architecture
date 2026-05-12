@@ -57,7 +57,7 @@ The toolkit uses the `boot()` method for dependency injection. The `execute()` m
 
 | Approach | When to use | Example |
 | --- | --- | --- |
-| `boot()` method | All dependencies (repositories, services, configuration) | `boot(UserRepository $repo): void` |
+| `boot()` method | Dependencies, clients, adapters, configuration | `boot(SearchIndexClient $search): void` |
 | Middleware | Cross-cutting infrastructure concerns | `TransactionMiddleware`, `LoggingMiddleware` |
 
 Rules of thumb:
@@ -132,4 +132,3 @@ An Instance should not:
 - Contain toolkit logic
 - Depend on internal toolkit implementation details
 - Assume its own existence
-

@@ -1,4 +1,4 @@
-# Chapter 04 - Structure and Naming
+# Chapter 03 - Structure and Naming
 
 This chapter consolidates structure and naming conventions for Laravel applications to keep the codebase navigable and predictable.
 
