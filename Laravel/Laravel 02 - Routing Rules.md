@@ -2,6 +2,8 @@
 
 Routing in utilitarian architecture follows a set of principles that maintain semantic clarity, domain focus, and separation of concerns.
 
+> **Note:** Examples below pass an Action/Command/Query class directly as the route handler (e.g. `Route::get(..., ShowPaymentAction::class)`). This requires that class to implement `__invoke()` — the base classes do not provide one. Invokable syntax is optional, not a requirement (see Laravel 01 — Direct action invocation); without `__invoke()`, use a closure that forwards to `dispatch()` instead: `Route::get('/payments/{payment}', fn (Payment $payment) => ShowPaymentAction::make($payment)->dispatch());`
+
 ## Rule: Route by owning aggregate identifier only
 
 If a resource (e.g. Payment) has a globally unique identifier and a well-defined ownership (Order), the route MUST be addressed by the resource identifier alone.

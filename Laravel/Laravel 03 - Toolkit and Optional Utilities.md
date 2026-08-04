@@ -2,10 +2,6 @@
 
 The utilitarian-laravel-toolkit provides a lightweight CQRS implementation for Laravel. It focuses on practical solutions over architectural dogma.
 
-## Philosophy
-
-Events are side effects. Practical over dogmatic.
-
 ## Core concepts
 
 The toolkit is built around three operation types:

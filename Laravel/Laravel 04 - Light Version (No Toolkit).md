@@ -257,7 +257,7 @@ When ready to add `utilitarian-laravel-toolkit`, the migration is mechanical. Th
 ### Step 1: Install the package
 
 ```
-composer require utilitarian/laravel-toolkit
+composer require utilitarian-dev/utilitarian-laravel-toolkit
 ```
 
 ### Step 2: Update Commands and Actions

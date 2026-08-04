@@ -138,9 +138,9 @@ Name these DTO classes to reflect their domain, not their transport mechanism. A
 If only one or two routes need the resolved data, resolving directly in the controller is cleaner:
 
 ```php
-public function show(string $slug, Request $request, ResolveShopScopeQuery $query): Response
+public function show(string $slug, Request $request): Response
 {
-    $scope = $query->execute($request);
+    $scope = (new ResolveShopScopeQuery($request))->execute();
 
     return (new ShowProductAction($slug, $scope))->execute();
 }
