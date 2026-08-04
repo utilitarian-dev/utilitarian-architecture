@@ -65,6 +65,12 @@ Rules of thumb:
 - Use `boot()` for all dependencies needed by the operation.
 - If it wraps execution without affecting business logic, use middleware.
 
+### `execute()` return type contract
+
+The base class declares `abstract public function execute(): mixed`. **Never declare `execute(): void`** in a Command, Query, or Action — `void` is not a valid covariant narrowing of `mixed` in PHP. Overriding with `void` fails at class-loading time with a fatal error (`Declaration ... execute(): void must be compatible with ... execute(): mixed`), not at call time — this can crash an entire test run with no visible error output, since the failure happens while the class is being included, before any test or reporter runs.
+
+Always declare `execute()` with either `mixed` or a concrete subtype of `mixed` (`Post`, `Collection`, `User`, a result DTO, etc.) — never `void`, even for operations that produce no meaningful return value.
+
 ## Design principles
 
 - SRP: one class equals one operation
